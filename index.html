@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Will you be my girlfriend? 💖</title>
+<style>
+  :root{
+    --bg:#fff0f8;
+    --accent:#ff6fb5;
+    --accent2:#ffd166;
+    --muted:#444;
+  }
+  html,body{height:100%;margin:0;font-family: 'Poppins', system-ui, sans-serif; background:linear-gradient(160deg,#ffeef7 0%, #fff7ea 60%);overflow:hidden}
+  /* moving hearts layer */
+  .hearts {
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+    overflow:hidden;
+  }
+  .heart {
+    position:absolute; width:30px;height:30px; transform:translate(-50%,-50%) rotate(-45deg);
+    background: radial-gradient(circle at 30% 30%, #fff 5%, transparent 6%);
+    border-radius:50%;
+    animation: floatUp linear infinite;
+    opacity:0.95;
+  }
+  .heart:before, .heart:after{
+    content:""; position:absolute; width:30px;height:30px; border-radius:50%;
+    background:inherit; top:-15px; left:0;
+  }
+  .heart:after{left:15px; top:0;}
+  @keyframes floatUp{
+    0%{transform: translateY(110vh) scale(0.6) rotate(-15deg); opacity:0}
+    10%{opacity:1}
+    100%{transform: translateY(-20vh) scale(1.05) rotate(10deg); opacity:0}
+  }
+
+  /* main container */
+  .wrap{position:relative; z-index:2; min-height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:18px; padding:40px 20px; text-align:center}
+  h1{font-size: clamp(22px,4vw,40px); margin:0 0 6px; color:var(--muted)}
+  p.lead{margin:0;color:#7d5a7a; font-size:clamp(14px,2.2vw,18px)}
+
+  /* buttons */
+  .buttons{display:flex; gap:28px; align-items:center; justify-content:center; margin-top:20px}
+  .btn{
+    position:relative;
+    padding:18px 36px; border-radius:14px; font-weight:800; letter-spacing:1px;
+    font-size:18px; cursor:pointer; user-select:none; transition:transform .22s ease, box-shadow .22s;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.12);
+  }
+  .btn:active{transform:translateY(2px)}
+  .yes{
+    background:linear-gradient(135deg,#ff9ccf,#ff6fb5);
+    color:white; border:none; transform-origin:center;
+  }
+  .no{
+    background:linear-gradient(135deg,#ffffff,#ffe6f1);
+    border:2px solid #ffd6ea; color:#b9417b;
+  }
+
+  /* tooltip / reason on hover */
+  .tooltip{
+    position:absolute; bottom: calc(100% + 12px); left:50%; transform:translateX(-50%) scale(.95);
+    background: #fff; padding:10px 12px; border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,0.12);
+    font-size:14px; color:#6b3a58; white-space:nowrap; opacity:0; pointer-events:none; transition:all .18s;
+  }
+  .btn:hover .tooltip{opacity:1; transform:translateX(-50%) scale(1);}
+
+  /* floating animation when NO escapes */
+  .flying { transition: transform .6s cubic-bezier(.18,.9,.4,1), left .6s, top .6s; position:fixed; z-index:10; }
+
+  /* kitty burst */
+  .burst {
+    position:fixed; z-index:12; pointer-events:none; transform:translate(-50%,-50%); text-align:center;
+    font-size:28px; animation: burstIn .6s ease-out forwards;
+  }
+  @keyframes burstIn{ 0%{opacity:0; transform:translate(-50%,-50%) scale(.6)} 60%{opacity:1; transform:translate(-50%,-50%) scale(1.08)} 100%{transform:translate(-50%,-50%) scale(1)} }
+
+  /* modal */
+  .modal {
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(10,10,10,0.45);
+    z-index:50; opacity:0; pointer-events:none; transition:opacity .3s;
+  }
+  .modal.open{opacity:1; pointer-events:auto}
+  .dialog {
+    background:linear-gradient(180deg,#fff 0%, #fff7ff 100%); border-radius:18px; padding:28px; width:min(720px, 92%); text-align:center; box-shadow:0 18px 60px rgba(0,0,0,0.28); position:relative;
+  }
+  .profile-row{display:flex; gap:16px; align-items:center; justify-content:center; margin-bottom:12px}
+  .profile-row img{width:110px;height:110px; object-fit:cover;border-radius:14px; box-shadow:0 12px 40px rgba(255,111,181,0.18); filter:drop-shadow(0 0 20px rgba(255,111,181,0.18)); transition:transform .25s ease}
+  .dialog h2{margin:0 0 6px}
+  .dialog p{margin:0 0 12px; color:#5b3a53}
+
+  /* glowing image */
+  .glow { box-shadow:0 0 32px rgba(255,111,181,0.35); transform:scale(1.02); }
+
+  /* confetti/heart bubble container */
+  canvas#confetti{ position:fixed; left:0; top:0; width:100%; height:100%; z-index:30; pointer-events:none; }
+
+  /* sparkle cursor */
+  canvas#cursorSpark{ position:fixed; pointer-events:none; inset:0; z-index:60; }
+
+  /* small footer */
+  .note{font-size:13px;color:#8b6d86;margin-top:12px}
+
+  /* heart icons animation after YES */
+  .love-stream{display:flex; gap:6px; align-items:center; justify-content:center; margin-top:14px; flex-wrap:wrap}
+  .love-stream span{font-size:22px; animation: pop 1.2s ease-in-out infinite}
+  @keyframes pop{0%{transform:translateY(0) scale(.9)}50%{transform:translateY(-8px) scale(1.12)}100%{transform:translateY(0) scale(.95)}}
+
+  /* responsive tweaks */
+  @media (max-width:520px){
+    .buttons{flex-direction:column}
+    .btn{width:220px}
+    .profile-row img{width:92px;height:92px}
+  }
+</style>
+</head>
+<body>
+
+<!-- moving hearts background -->
+<div class="hearts" id="hearts"></div>
+
+<div class="wrap">
+  <h1>Will you be my girlfriend? 💗</h1>
+  <p class="lead">Because I’ll make you smile every single day. Choose carefully (but I hope you choose yes!)</p>
+
+  <div class="buttons" id="buttonRow">
+    <button id="yesBtn" class="btn yes" aria-label="Yes">
+      YES ❤
+      <div class="tooltip">Tap to make me the happiest human alive 💞</div>
+    </button>
+
+    <button id="noBtn" class="btn no flying" aria-label="No">
+      NO 😿
+      <div class="tooltip" id="noTooltip">Hover for a reason...</div>
+    </button>
+  </div>
+
+  <div class="note">Tip: Hover NO to see cute reasons. Tap NO — watch what happens 😉</div>
+</div>
+
+<!-- burst container -->
+<div id="burstArea"></div>
+
+<!-- modal for YES -->
+<div class="modal" id="modal">
+  <div class="dialog" role="dialog" aria-modal="true">
+    <div class="profile-row">
+      <img id="imgYou" src="you.jpg" alt="You (replace you.jpg)">
+      <img id="imgCrush" src="crush.jpg" alt="Her (replace crush.jpg)">
+    </div>
+    <h2>She said YES! 🎉</h2>
+    <p>You just made my world — I promise to make yours brighter every day.</p>
+
+    <div class="love-stream" id="loveStream"></div>
+
+    <div style="margin-top:10px;">
+      <button id="closeModal" class="btn no">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- audio control (YouTube embeds hidden iframes) -->
+<div style="display:none;">
+  <!-- Background music iframe (will be muted at start to allow autoplay in many browsers) -->
+  <iframe id="bgMusic" src="https://www.youtube.com/embed/8NFYPGgmfV8?autoplay=1&loop=1&playlist=8NFYPGgmfV8&controls=0&rel=0&modestbranding=1&iv_load_policy=3" allow="autoplay"></iframe>
+
+  <!-- YES song iframe (plays when YES pressed) -->
+  <iframe id="yesMusic" src="https://www.youtube.com/embed/BddP6PYo2gs?autoplay=0&loop=1&playlist=BddP6PYo2gs&controls=0&rel=0&modestbranding=1&iv_load_policy=3" allow="autoplay"></iframe>
+</div>
+
+<!-- confetti canvas -->
+<canvas id="confetti"></canvas>
+<!-- sparkle cursor canvas -->
+<canvas id="cursorSpark"></canvas>
+
+<script>
+/* --------------------------
+   Data: your infinite reasons
+   -------------------------- */
+const reasons = [
+"Because I’ll make you smile every single day.",
+"Because you already live in my mind rent-free.",
+"Because you deserve someone who chooses you every time — and that’s me.",
+"Because together we’ll be the cutest couple ever.",
+"Because saying yes will make my entire universe brighter.",
+"Because I’ll protect your heart like it’s my own.",
+"Because you’re the plot twist my life needed.",
+"Because I make great snacks and share them. 😄",
+"Because every “yes” from you makes me 100x happier.",
+"Because my arms were basically designed to hug you.",
+"Because I’ll always listen — even to your rants.",
+"Because I’ll hype you up more than your best friend.",
+"Because you’re the first person I want to text every morning.",
+"Because your happiness is my favourite mission.",
+"Because life with me will be full of surprises (the cute kind).",
+"Because I will never let you feel alone.",
+"Because I’ll support all your dreams — even the random ones.",
+"Because we’ll make memories that are too good to forget.",
+"Because I’ll never get tired of calling you mine.",
+"Because together we’ll laugh more, love more, live more.",
+"Because saying yes is good for your health (scientifically proven by me 😌).",
+"Because you deserve someone who treats you like a priority.",
+"We'll look adorable in pictures.",
+"Because I’ll always choose peace over pointless fights.",
+"Because I’ll make sure your coffee/tea is perfect.",
+"Because I’ll never stop making efforts.",
+"You’ll always have a shoulder to lean on.",
+"You’re my favourite notification.",
+"Because every moment with you feels right.",
+"Because we’ll be a team — the unbeatable kind.",
+"I’ll hold your hand and never let go.",
+"Your laugh is my favourite sound.",
+"I’m already falling… just need your yes to land safely.",
+"I’m not perfect, but I’ll try every day to be better for you.",
+"My heart already picked you.",
+"Together we’ll write our own cute love story.",
+"I’ll keep your secrets like treasures.",
+"I’ll cheer for you even louder than you cheer for yourself.",
+"Your “yes” will be the best day of my life.",
+"I’ll love you in your happiest and messiest days.",
+"You make my world feel complete.",
+"You deserve someone who sees forever in you — I do.",
+"I’ll walk with you, not ahead or behind.",
+"Loving you feels easy and natural.",
+"Life is short — we should spend it together.",
+"I’ll respect you, your boundaries, and your dreams.",
+"I want to grow with you.",
+"I want to call you mine without hesitation.",
+"Every version of you is perfect to me.",
+"Because… deep down, you want to say yes too. ❤"
+];
+
+/* --------------------------
+   Elements
+   -------------------------- */
+const yesBtn = document.getElementById('yesBtn');
+const noBtn = document.getElementById('noBtn');
+const noTooltip = document.getElementById('noTooltip');
+const burstArea = document.getElementById('burstArea');
+const modal = document.getElementById('modal');
+const closeModal = document.getElementById('closeModal');
+const confettiCanvas = document.getElementById('confetti');
+const cursorCanvas = document.getElementById('cursorSpark');
+const loveStream = document.getElementById('loveStream');
+
+let yesScale = 1;
+let noTaps = 0;
+
+/* --------------------------
+   Helper: random reason
+   -------------------------- */
+function randReason(){
+  // loop reasons infinitely; reason 50 is last entry (index 49). We'll keep cycling.
+  return reasons[Math.floor(Math.random()*reasons.length)];
+}
+
+/* --------------------------
+   NO hover: show reason
+   -------------------------- */
+noBtn.addEventListener('mouseenter', () => {
+  noTooltip.textContent = randReason();
+});
+
+/* --------------------------
+   NO button escape logic
+   -------------------------- */
+function moveNoToRandomPlace(animated=true){
+  // choose random safe position at edges/corners to be playful
+  const margin = 22;
+  const ww = window.innerWidth;
+  const hh = window.innerHeight;
+
+  // candidate positions: 8 places (4 corners + 4 edges mid)
+  const choices = [
+    {x: margin, y: margin},
+    {x: ww - margin - noBtn.offsetWidth, y: margin},
+    {x: margin, y: hh - margin - noBtn.offsetHeight},
+    {x: ww - margin - noBtn.offsetWidth, y: hh - margin - noBtn.offsetHeight},
+    {x: ww/2 - noBtn.offsetWidth/2, y: margin},
+    {x: ww/2 - noBtn.offsetWidth/2, y: hh - margin - noBtn.offsetHeight},
+    {x: margin, y: hh/2 - noBtn.offsetHeight/2},
+    {x: ww - margin - noBtn.offsetWidth, y: hh/2 - noBtn.offsetHeight/2}
+  ];
+  const pick = choices[Math.floor(Math.random()*choices.length)];
+  noBtn.style.left = pick.x + 'px';
+  noBtn.style.top = pick.y + 'px';
+  noBtn.classList.add('flying');
+}
+
+/* initialize no button at center-right */
+function initNoPosition(){
+  noBtn.style.left = (window.innerWidth/2 + 120)+'px';
+  noBtn.style.top = (window.innerHeight/2)+'px';
+  noBtn.classList.add('flying');
+}
+initNoPosition();
+window.addEventListener('resize', initNoPosition);
+
+/* --------------------------
+   Sounds: synth for "aww" and little meow
+   -------------------------- */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playAww(){
+  // soft descending chord
+  const now = audioCtx.currentTime;
+  const osc1 = audioCtx.createOscillator();
+  const osc2 = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  g.gain.value = 0.0001;
+  g.connect(audioCtx.destination);
+  osc1.type='sine'; osc2.type='sine';
+  osc1.frequency.value = 660; osc2.frequency.value = 880;
+  osc1.connect(g); osc2.connect(g);
+  g.gain.linearRampToValueAtTime(0.12, now + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
+  osc1.start(now); osc2.start(now);
+  osc1.stop(now + 0.95); osc2.stop(now + 0.95);
+}
+
+function playMeow(){
+  const now = audioCtx.currentTime;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type='sawtooth'; o.frequency.setValueAtTime(500, now);
+  o.frequency.exponentialRampToValueAtTime(220, now+0.28);
+  g.gain.value = 0.0001; g.gain.linearRampToValueAtTime(0.12, now+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, now+0.6);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(now); o.stop(now+0.7);
+}
+
+/* --------------------------
+   burst (kitty + loves)
+   -------------------------- */
+function createBurst(x,y){
+  const el = document.createElement('div');
+  el.className='burst';
+  el.style.left = x+'px';
+  el.style.top = y+'px';
+  el.innerHTML = '😿 <br> <span style="font-size:22px">💗💗</span>';
+  burstArea.appendChild(el);
+  setTimeout(()=> el.remove(), 1100);
+}
+
+/* --------------------------
+   NO button tap handler
+   -------------------------- */
+noBtn.addEventListener('click', (ev) => {
+  // ensure audio context is resumed on first interaction (some browsers require user gesture)
+  if(audioCtx.state === 'suspended'){ audioCtx.resume(); }
+  noTaps++;
+  // grow YES a bit
+  yesScale += 0.055;
+  yesBtn.style.transform = `scale(${yesScale})`;
+  // play sounds
+  playAww(); playMeow();
+  // kitty burst near the button (position)
+  const rect = ev.target.getBoundingClientRect();
+  createBurst(rect.left + rect.width/2, rect.top - 10);
+  // move NO away
+  moveNoToRandomPlace(true);
+});
+
+/* make NO escape on mouseover occasionally for extra fun */
+noBtn.addEventListener('mousemove', (e) => {
+  // 13% chance to escape on hover move (makes it chase)
+  if(Math.random() < 0.12){
+    moveNoToRandomPlace();
+  }
+});
+
+/* --------------------------
+   YES tap handler
+   -------------------------- */
+const bgIframe = document.getElementById('bgMusic');
+const yesIframe = document.getElementById('yesMusic');
+
+let bgPlaying = true;
+
+function unmuteBackground(){
+  // unmuting the background iframe is browser dependent; we can attempt to re-create with autoplay=1&mute=0 if needed.
+  // For now, after first interaction we set bgPlaying flag and rely on iframe autoplay -> modern browsers typically allow autoplay after gesture.
+  try{ /* nothing to do reliably cross-browser */ }catch(e){}
+}
+
+yesBtn.addEventListener('click', async (ev) => {
+  if(audioCtx.state === 'suspended'){ await audioCtx.resume(); }
+  // stop background music by hiding bg iframe (most reliable)
+  bgIframe.style.display = 'none';
+  bgPlaying = false;
+  // open modal
+  modal.classList.add('open');
+  // tiny pop and confetti
+  startConfetti();
+  // glow images
+  document.getElementById('imgYou').classList.add('glow');
+  document.getElementById('imgCrush').classList.add('glow');
+  // play YES song by setting src with autoplay param and visibility
+  yesIframe.src = 'https://www.youtube.com/embed/BddP6PYo2gs?autoplay=1&loop=1&playlist=BddP6PYo2gs&controls=0&rel=0&modestbranding=1&iv_load_policy=3';
+  // create love bubbles
+  for(let i=0;i<12;i++){
+    const sp = document.createElement('span');
+    sp.textContent = ['💗','💘','😍','💞'][Math.floor(Math.random()*4)];
+    sp.style.opacity = Math.random()*0.9 + 0.2;
+    sp.style.transform = `translateY(${Math.random()*20}px)`;
+    loveStream.appendChild(sp);
+  }
+  // show looping message (reason 50) after small delay
+  const msg = document.createElement('div');
+  msg.style.marginTop='14px';
+  msg.style.fontWeight='700';
+  msg.style.color='#7a3b5b';
+  msg.innerHTML = 'Because… deep down, you want to say yes too. ❤';
+  document.querySelector('.dialog').appendChild(msg);
+
+  // confetti + hearts keep animating
+});
+
+/* close modal */
+closeModal.addEventListener('click', () => {
+  modal.classList.remove('open');
+  stopConfetti();
+  // stop yes music
+  yesIframe.src = '';
+});
+
+/* --------------------------
+   Confetti (simple) & hearts
+   -------------------------- */
+const confettiCtx = confettiCanvas.getContext('2d');
+let confettiPieces = [];
+function resizeCanvas(){
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+  cursorCanvas.width = window.innerWidth;
+  cursorCanvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function rand(min,max){ return Math.random()*(max-min)+min; }
+
+function startConfetti(){
+  confettiPieces = [];
+  for(let i=0;i<120;i++){
+    confettiPieces.push({
+      x: rand(0,confettiCanvas.width),
+      y: rand(-confettiCanvas.height, 0),
+      vx: rand(-1.5,1.5),
+      vy: rand(1,4),
+      size: rand(6,12),
+      color: ['#ff7aa2','#ffd166','#ffefc2','#ffb6d5'][Math.floor(Math.random()*4)],
+      shape: Math.random()<0.5? 'rect':'heart'
+    });
+  }
+  if(!confettiLooping) confettiLooping = true, confettiLoop();
+}
+function stopConfetti(){
+  confettiLooping = false;
+  confettiPieces = [];
+  confettiCtx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+}
+let confettiLooping = false;
+function confettiLoop(){
+  if(!confettiLooping) return;
+  confettiCtx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+  for(let p of confettiPieces){
+    p.x += p.vx; p.y += p.vy;
+    p.vy *= 1.01;
+    // draw
+    if(p.shape==='rect'){
+      confettiCtx.fillStyle = p.color;
+      confettiCtx.fillRect(p.x, p.y, p.size, p.size*0.6);
+    } else {
+      // draw small heart
+      confettiCtx.fillStyle = p.color;
+      confettiCtx.beginPath();
+      confettiCtx.moveTo(p.x, p.y);
+      confettiCtx.ellipse(p.x - p.size*0.25, p.y - p.size*0.1, p.size*0.28, p.size*0.4, 0, 0, Math.PI*2);
+      confettiCtx.ellipse(p.x + p.size*0.25, p.y - p.size*0.1, p.size*0.28, p.size*0.4, 0, 0, Math.PI*2);
+      confettiCtx.moveTo(p.x - p.size*0.4, p.y + p.size*0.1);
+      confettiCtx.quadraticCurveTo(p.x, p.y + p.size*0.9, p.x + p.size*0.4, p.y + p.size*0.1);
+      confettiCtx.fill();
+    }
+    if(p.y > confettiCanvas.height + 40) {
+      p.y = -20; p.x = rand(0, confettiCanvas.width);
+    }
+  }
+  requestAnimationFrame(confettiLoop);
+}
+
+/* --------------------------
+   moving hearts background
+   -------------------------- */
+const heartsContainer = document.getElementById('hearts');
+function spawnHearts(){
+  const max = 12;
+  for(let i=0;i<max;i++){
+    const h = document.createElement('div');
+    h.className = 'heart';
+    h.style.left = (Math.random()*110)+'%';
+    h.style.top = (Math.random()*120)+'%';
+    h.style.background = ['#ffd0ea','#ffc8d9','#ffe6f1','#ffd166'][Math.floor(Math.random()*4)];
+    h.style.animationDuration = (6 + Math.random()*8)+'s';
+    h.style.opacity = 0.6 + Math.random()*0.4;
+    heartsContainer.appendChild(h);
+    setTimeout(()=>{ try{ h.remove(); }catch(e){} }, 17000 + Math.random()*10000);
+  }
+  setTimeout(spawnHearts, 4500 + Math.random()*6000);
+}
+spawnHearts();
+
+/* --------------------------
+   Sparkle cursor (simple)
+   -------------------------- */
+const curCtx = cursorCanvas.getContext('2d');
+let sparkleParticles = [];
+function cursorMove(e){
+  for(let i=0;i<3;i++){
+    sparkleParticles.push({
+      x:e.clientX + rand(-6,6),
+      y:e.clientY + rand(-6,6),
+      vx:rand(-0.6,0.6),
+      vy:rand(-1.6,-0.2),
+      life: 40 + Math.random()*30,
+      size: 2 + Math.random()*4,
+      hue: Math.floor(rand(0,360))
+    });
+  }
+}
+window.addEventListener('mousemove', cursorMove);
+function sparkleLoop(){
+  curCtx.clearRect(0,0,cursorCanvas.width,cursorCanvas.height);
+  for(let i=sparkleParticles.length-1;i>=0;i--){
+    const p=sparkleParticles[i];
+    p.x+=p.vx; p.y+=p.vy; p.life--;
+    curCtx.beginPath();
+    curCtx.fillStyle = `hsl(${p.hue} 80% 60% / ${Math.max(0, p.life/60)})`;
+    curCtx.arc(p.x,p.y,p.size,0,Math.PI*2);
+    curCtx.fill();
+    if(p.life<=0) sparkleParticles.splice(i,1);
+  }
+  requestAnimationFrame(sparkleLoop);
+}
+sparkleLoop();
+
+/* --------------------------
+   Small UX: allow unmuting on first gesture
+   -------------------------- */
+document.addEventListener('click', function one(){
+  // attempt to unmute or resume audio context
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  unmuteBackground();
+  document.removeEventListener('click', one);
+});
+
+/* --------------------------
+   Extra: make NO tooltip cycle when hovered continuously
+   -------------------------- */
+let hoverInterval = null;
+noBtn.addEventListener('mouseenter', ()=>{
+  hoverInterval = setInterval(()=>{ noTooltip.textContent = randReason(); }, 1600);
+});
+noBtn.addEventListener('mouseleave', ()=>{
+  clearInterval(hoverInterval);
+  hoverInterval = null;
+});
+
+/* --------------------------
+   Optional: small gentle bounce for yes button to attract attention
+   -------------------------- */
+setInterval(()=> {
+  yesBtn.animate([
+    { transform: `scale(${yesScale})` },
+    { transform: `scale(${yesScale + 0.06})` },
+    { transform: `scale(${yesScale})` }
+  ], { duration: 1300, easing: 'ease-in-out' });
+}, 2200);
+
+/* --------------------------
+   Ensure NO button initially in view as fixed absolute
+   -------------------------- */
+noBtn.style.position = 'fixed';
+
+/* --------------------------
+   Prevent text selection for buttons mobile
+   -------------------------- */
+['touchstart','touchmove','touchend'].forEach(e => {
+  document.addEventListener(e, (ev) => {
+    if(ev.target && (ev.target.id==='yesBtn' || ev.target.id==='noBtn')) ev.preventDefault();
+  }, {passive:false});
+});
+</script>
+</body>
+</html>
